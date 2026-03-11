@@ -6,6 +6,91 @@ AddEventHandler("asd-chopping:tryOpenExchangeMenu", function()
     TriggerServerEvent("asd-chopping:openExchangeMenu")
 end)
 
+
+
+
+
+
+
+RegisterNetEvent("fn-drugs:openLabMenu", function(recipe)
+    local options = {}
+    for _, item in ipairs(recipe.ingredients) do
+        local itemCount = exports.ox_inventory:GetItemCount(item.item)
+        print(item.item, itemCount)
+        if itemCount <= 0 then
+            lib.notify({ title = "Missing Ingredients", description = "You don't have the required ingredients.", type = "error" })
+            return
+        end
+    end
+
+
+    table.insert(options, {
+        label = "Process All",
+        icon = "fa-solid fa-flask",
+        args = { type = "all" }
+    })
+
+
+    
+    local description = ""
+
+    for _, v in pairs(recipe.ingredients) do
+        local itemCount = exports.ox_inventory:GetItemCount(v.item)
+        description = description .. ("%s x %s\n"):format(v.amount, v.item)
+    end
+
+    local label = "Processing..."
+
+
+    local max = math.huge
+
+    for k, v in pairs(recipe.ingredients) do
+        local itemCount = exports.ox_inventory:GetItemCount(v.item)
+        local possibleCrafts = math.floor(itemCount / v.amount)
+        if possibleCrafts < max then 
+            max = possibleCrafts
+        end
+    end
+
+    local values = {}
+
+    local descrEnd = ""
+    if recipe.revealOutput then 
+        descrEnd = recipe.output.label
+        label = recipe.output.label .. " " .. label
+    end
+
+    for i = 1, max do table.insert(values, "Process " .. i .. " " .. descrEnd) end
+
+    table.insert(options, {
+        label = label,
+        description = description, 
+        args = { type = "single", data = recipe },
+        values = values
+    })
+
+
+    lib.registerMenu({
+        id = recipe.id.."_menu",
+        title = recipe.targetText,
+        position = 'bottom-right',
+        options = options,
+    }, function(selected, scrollIndex, args)
+        if args.type == "all" then
+            print("Processed All")
+        else
+            print("processed x"..scrollIndex)
+        end
+    end)
+    lib.showMenu(recipe.id.."_menu")
+end)
+
+
+
+
+
+
+
 RegisterNetEvent("asd-chopping:openSellMenu", function(items)
     local options = {}
     local grandTotal = 0

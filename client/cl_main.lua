@@ -1,5 +1,9 @@
 local zones = {}
+-- COMMENT UR SHIT, this is just a fucking modified copy of scrapping
+-- WTF DOES EVERYTHING DO
+-- ALSO RENAME UR FUNCTIONS AND FUKING VARIABLES
 
+-- later me chiming in, this includes other files as well
 for k, v in pairs(Config.HarvestingSpots) do
     zones[#zones + 1] = lib.zones.sphere({
         coords = v.position,
@@ -63,4 +67,45 @@ for k, v in pairs(Config.HarvestingSpots) do
             end
         end,
     })
+end
+
+
+
+-- Recipes / Tables
+
+-- CREATE TABLES FIRST DUMBASS
+
+local recipeZones = {}
+local recipeTargets = {}
+for i, recipe in pairs(Config.Recipes) do
+    for ii, step in ipairs(recipe.steps) do
+        if step.table then
+            print("oh shit")
+
+        else
+            recipeZones[#recipeZones + 1] = lib.zones.sphere({
+                coords = step.location,
+                radius = 10,
+                debug = false,
+                onEnter = function (self)
+                    exports.ox_target:addSphereZone({
+                        name = step.id,
+                        coords = step.location,
+                        radius = 1.0,
+                        debug = false,
+                        options = {
+                            label = step.targetText,
+                            distance = 1.5,
+                            onSelect = function ()
+                                TriggerEvent("fn-drugs:openLabMenu", step)
+                            end
+                        }
+                    })
+                end,
+                onExit = function ()
+                    exports.ox_target:removeZone(step.id)
+                end
+            })
+        end
+    end
 end

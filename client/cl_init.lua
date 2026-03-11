@@ -1,4 +1,4 @@
-CreateThread(function()
+/*CreateThread(function()
     local interactHashes = {}
     for _, model in ipairs(Config.InteractableModels) do
         table.insert(interactHashes, GetHashKey(model))
@@ -57,4 +57,4 @@ CreateThread(function()
             event = "asd-chopping:tryOpenExchangeMenu"
         }
     })
-end)
+end)*/
