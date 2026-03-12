@@ -12,7 +12,10 @@ end)
 
 
 
-RegisterNetEvent("fn-drugs:openLabMenu", function(recipe)
+RegisterNetEvent("fn-drugs:openLabMenu", function(recipeId)
+    print(recipeId)
+    local recipe = Config.Recipes[recipeId]
+    if not recipe then return end
     local options = {}
     for _, item in ipairs(recipe.ingredients) do
         local itemCount = exports.ox_inventory:GetItemCount(item.item)
@@ -23,12 +26,6 @@ RegisterNetEvent("fn-drugs:openLabMenu", function(recipe)
         end
     end
 
-
-    table.insert(options, {
-        label = "Process All",
-        icon = "fa-solid fa-flask",
-        args = { type = "all" }
-    })
 
 
     
@@ -62,13 +59,20 @@ RegisterNetEvent("fn-drugs:openLabMenu", function(recipe)
 
     for i = 1, max do table.insert(values, "Process " .. i .. " " .. descrEnd) end
 
+    
+
+    table.insert(options, {
+        label = "Process All",
+        icon = "fa-solid fa-flask",
+        args = { type = "all", data = recipeId, max = max }
+    })
+
     table.insert(options, {
         label = label,
         description = description, 
-        args = { type = "single", data = recipe },
+        args = { type = "single", data = recipeId },
         values = values
     })
-
 
     lib.registerMenu({
         id = recipe.id.."_menu",
@@ -77,9 +81,9 @@ RegisterNetEvent("fn-drugs:openLabMenu", function(recipe)
         options = options,
     }, function(selected, scrollIndex, args)
         if args.type == "all" then
-            print("Processed All")
+            TriggerServerEvent("fn-drugs:server:startProcess", args.data, args.max)
         else
-            print("processed x"..scrollIndex)
+            TriggerServerEvent("fn-drugs:server:startProcess", args.data, scrollIndex)
         end
     end)
     lib.showMenu(recipe.id.."_menu")

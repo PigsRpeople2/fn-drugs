@@ -76,36 +76,58 @@ end
 -- CREATE TABLES FIRST DUMBASS
 
 local recipeZones = {}
-local recipeTargets = {}
-for i, recipe in pairs(Config.Recipes) do
-    for ii, step in ipairs(recipe.steps) do
-        if step.table then
-            print("oh shit")
+for recipeId, recipe in pairs(Config.Recipes) do
+    if recipe.table then
+        print("oh shit")
 
-        else
-            recipeZones[#recipeZones + 1] = lib.zones.sphere({
-                coords = step.location,
-                radius = 10,
-                debug = false,
-                onEnter = function (self)
-                    exports.ox_target:addSphereZone({
-                        name = step.id,
-                        coords = step.location,
-                        radius = 1.0,
-                        debug = false,
-                        options = {
-                            label = step.targetText,
-                            distance = 1.5,
-                            onSelect = function ()
-                                TriggerEvent("fn-drugs:openLabMenu", step)
-                            end
-                        }
-                    })
-                end,
-                onExit = function ()
-                    exports.ox_target:removeZone(step.id)
-                end
-            })
-        end
+    else
+        recipeZones[#recipeZones + 1] = lib.zones.sphere({
+            coords = recipe.location,
+            radius = 10,
+            debug = false,
+            onEnter = function (self)
+                exports.ox_target:addSphereZone({
+                    name = recipe.id,
+                    coords = recipe.location,
+                    radius = 1.0,
+                    debug = false,
+                    options = {
+                        label = recipe.targetText,
+                        distance = 1.5,
+                        onSelect = function ()
+                            TriggerEvent("fn-drugs:openLabMenu", recipeId)
+                        end
+                    }
+                })
+            end,
+            onExit = function ()
+                exports.ox_target:removeZone(recipe.id)
+            end
+        })
     end
 end
+
+
+
+
+lib.callback.register("fn-drugs:cl:startbar", function(time, label, skillCheck, anim)
+    if skillCheck then
+        local success = lib.skillCheck(skillCheck, {'1','2','3','4'})
+        if success then
+            if lib.progressBar({duration = time, label = label, anim = anim, canCancel = true}) then
+                return true
+            else
+                return false
+            end
+        else
+            return false
+        end
+    else
+        if lib.progressBar({duration = time, label = label, anim = anim}) then
+            return true
+        else
+            return false
+        end
+    end
+end)
+

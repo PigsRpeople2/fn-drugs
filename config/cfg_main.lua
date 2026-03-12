@@ -34,26 +34,20 @@ Config.HarvestingSpots = {
 
 
 Config.Recipes = {
-    ["Meth"] = {
-        steps = {
-            {
-                id = "mix_chemicals",
-                targetText = "Mix Chemicals",
-                time = 5000,
-                progressText = "Mxing Chemicals...",
-                animation = {
-                    dict = "",
-                    name = ""
-                },
-                ingredients = {
-                    { item = "ammo-9", amount = 1 },
-                },
-                output = { item = "meth", label = "Meth", amount = 1 },
-                revealOutput = true,
-                --table = "meth_table",
-                location = vec3(105.5553, -1089.2196, 29.1198)              -- Unneeded if a table is assigned
-            }
-        }
+    ["meth"] = {
+        id = "mix_chemicals",
+        targetText = "Mix Chemicals",
+        time = 250,
+        progressText = "Mxing Chemicals...",
+        animation = {dict = "mini@repair", clip = "fixing_a_ped"},
+        ingredients = {
+            { item = "ammo-9", amount = 1 },
+        },
+        output = { item = "meth", label = "Meth", amount = 1 },
+        revealOutput = true,
+        --table = "meth_table",
+        location = vec3(105.5553, -1089.2196, 29.1198),              -- Unneeded if a table is assigned
+        skillCheck = {"easy"} -- easy, medium, hard, false or cutsom table
     }
 }
 
