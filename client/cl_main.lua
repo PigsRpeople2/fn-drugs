@@ -117,6 +117,7 @@ for zoneKey, data in pairs(Config.HarvestingSpots) do
                         local obj = CreateObject(data.prop.model, spawnPos.x, spawnPos.y, spawnPos.z, false, true, false)
                         SetEntityHeading(obj, math.random(0, 360) + 0.0)
                         FreezeEntityPosition(obj, true)
+                        PlaceObjectOnGroundProperly(obj)
                         
                         local iconStr = data.icon or "leaf"
                         if not string.find(iconStr, "fa-") then iconStr = "fa-solid fa-" .. iconStr end
