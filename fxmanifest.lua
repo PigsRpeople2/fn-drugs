@@ -2,7 +2,7 @@ fx_version 'cerulean'
 games { 'gta5' }
 lua54 'yes'
 
-author 'Asraye'
+author 'Asraye & PigsRpeople2'
 description 'Basic drug system for FadedNetworks'
 
 shared_scripts {

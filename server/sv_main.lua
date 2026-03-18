@@ -28,57 +28,53 @@ lib.callback.register('fn-drugs:sv:requestPick', function(source, spotKey)
     end
 end)
 
-
 RegisterNetEvent("fn-drugs:server:startProcess", function(recipeId, amount)
+    local source = source
     local recipe = Config.Recipes[recipeId]
+    if not recipe or amount <= 0 then return end
 
-    for i, ingredient in pairs(recipe.ingredients) do
-        local needed = ingredient.amount * amount
-        local items = exports.ox_inventory:Search(source, 'count', ingredient.item)
-        if items < needed then return end
+    for _, ingredient in ipairs(recipe.ingredients) do
+        local count = exports.ox_inventory:Search(source, 'count', ingredient.item)
+        if count < (ingredient.amount * amount) then 
+            return TriggerClientEvent('ox_lib:notify', source, {type = 'error', description = 'Missing ingredients'})
+        end
     end
-    
-    local progress = lib.callback.await("fn-drugs:cl:startbar", source, recipe.time * amount, recipe.progressText, recipe.skillCheck, recipe.animation)
-    if not progress then
-        return
-    else
-        local playerPed = GetPlayerPed(source)
-        local coords = GetEntityCoords(playerPed)
-        local dist = #(coords - recipe.location.xyz)
 
-        if dist > 10 then return end
-        for i, ingredient in ipairs(recipe.ingredients) do
-            local needed = ingredient.amount * amount
-            local items = exports.ox_inventory:Search(source, 'count', ingredient.item)
-            if items < needed then return end
+    local success = lib.callback.await("fn-drugs:cl:startbar", source, recipe.time * amount, recipe.progressText, recipe.skillCheck, recipe.animation)
+    if not success then return end
+
+    local playerPed = GetPlayerPed(source)
+    local coords = GetEntityCoords(playerPed)
+    local location = recipe.table and Config.Tables[recipe.table]?.coords.xyz or recipe.location?.xyz or vec3(0,0,0)
+
+    if #(coords - location) > 10.0 then 
+        return print(string.format("Player %s attempted to process drugs too far away!", source))
+    end
+
+    local itemsToGive = {}
+    for _, output in ipairs(recipe.outputs) do
+        local roll = math.random(1, 100)
+        if roll <= output.chance then
+            local totalAmount = output.amount * amount
+            table.insert(itemsToGive, {item = output.item, amount = totalAmount})
         end
+    end
 
-        local outputWeight = exports.ox_inventory:Items(recipe.output.item).weight
-        
-
-        local weight = outputWeight * recipe.output.amount * amount
-
-        for _, ingredient in ipairs(recipe.ingredients) do
-            local used = ingredient.amount * amount
-            local usedWeight = exports.ox_inventory:Items(ingredient.item).weight * used
-
-            weight = weight - usedWeight
-        end
-
-        if not exports.ox_inventory:CanCarryWeight(source, weight) then
-            local data = {
-                title = "Cannot Carry Item",
-                description = "Item is too heavy to carry.",
+    for _, reward in ipairs(itemsToGive) do
+        if not exports.ox_inventory:CanCarryItem(source, reward.item, reward.amount) then
+            return TriggerClientEvent('ox_lib:notify', source, {
+                title = "Inventory Full",
+                description = "You cannot carry the finished product.",
                 type = "error"
-            }
-            TriggerClientEvent('ox_lib:notify', source, data)
-            return
+            })
         end
+    end
 
-        for i, ingredient in ipairs(recipe.ingredients) do
-            local needed = ingredient.amount * amount
-            exports.ox_inventory:RemoveItem(source, ingredient.item, needed)
-        end
-        exports.ox_inventory:AddItem(source, recipe.output.item, recipe.output.amount * amount)
+    for _, ingredient in ipairs(recipe.ingredients) do
+        exports.ox_inventory:RemoveItem(source, ingredient.item, ingredient.amount * amount)
+    end
+
+    for _, reward in ipairs(itemsToGive) do
+        exports.ox_inventory:AddItem(source, reward.item, reward.amount)
     end
 end)

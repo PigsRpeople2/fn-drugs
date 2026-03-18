@@ -1,133 +1,178 @@
-local zones = {}
--- COMMENT UR SHIT, this is just a fucking modified copy of scrapping
--- WTF DOES EVERYTHING DO
--- ALSO RENAME UR FUNCTIONS AND FUKING VARIABLES
+local harvestingZones = {}
+local recipeZones = {}
+local tableZones = {}
+local spawnedTableObjects = {}
+local plantCooldowns = {} 
 
--- later me chiming in, this includes other files as well
-for k, v in pairs(Config.HarvestingSpots) do
-    zones[#zones + 1] = lib.zones.sphere({
-        coords = v.position,
-        radius = v.renderDist or 10.0, 
+local function CleanupDrugSystem()
+    for _, zone in ipairs(harvestingZones) do
+        if zone.spawnedObjects then
+            for _, obj in pairs(zone.spawnedObjects) do
+                if DoesEntityExist(obj) then DeleteEntity(obj) end
+            end
+        end
+        zone:remove()
+    end
+    for _, tableObj in pairs(spawnedTableObjects) do
+        if DoesEntityExist(tableObj) then DeleteEntity(tableObj) end
+    end
+    for _, zone in ipairs(recipeZones) do zone:remove() end
+    for _, zone in ipairs(tableZones) do zone:remove() end
+    lib.hideTextUI()
+end
+
+AddEventHandler('onResourceStop', function(resource)
+    if resource ~= GetCurrentResourceName() then return end
+    CleanupDrugSystem()
+end)
+
+function HarvestPlant(zoneKey, index, entity, data)
+    if IsPedInAnyVehicle(cache.ped, true) then return end
+
+    local success = lib.progressCircle({
+        duration = data.time,
+        label = ("Harvesting %s"):format(data.label),
+        position = 'bottom',
+        useWhileDead = false,
+        canCancel = true,
+        disable = { move = true, car = true, combat = true },
+        anim = { dict = "amb@world_human_gardener_plant@male@idle_a", clip = "idle_b" },
+    })
+
+    if success then
+        local hasSpace = lib.callback.await("fn-drugs:sv:requestPick", false, zoneKey)
+        if hasSpace then
+            plantCooldowns[zoneKey][index] = GetGameTimer() + ((data.respawnTime or 300) * 1000)
+            
+            if DoesEntityExist(entity) then
+                exports.ox_target:removeLocalEntity(entity)
+                DeleteEntity(entity)
+            end
+        else
+            lib.notify({ title = "Inventory Full", type = "error" })
+        end
+    end
+end
+
+for zoneKey, data in pairs(Config.HarvestingSpots) do
+    plantCooldowns[zoneKey] = {}
+
+    harvestingZones[#harvestingZones + 1] = lib.zones.sphere({
+        coords = data.position,
         debug = false,
         onEnter = function(self)
-            if v.prop then
-                if lib.requestModel(v.prop.model, 5000) then
-                    self.spawnedObj = CreateObject(v.prop.model, v.prop.pos.x, v.prop.pos.y, v.prop.pos.z, false, false, false)
-                    SetEntityHeading(self.spawnedObj, v.prop.heading or 0.0)
-                    FreezeEntityPosition(self.spawnedObj, true)
-                    SetEntityAsMissionEntity(self.spawnedObj, true, true)
-                    SetModelAsNoLongerNeeded(v.prop.model)
-                end
-            end
+            self.spawnedObjects = {}
+            if data.prop then lib.requestModel(data.prop.model, 5000) end
         end,
         onExit = function(self)
-            if self.spawnedObj and DoesEntityExist(self.spawnedObj) then
-                DeleteEntity(self.spawnedObj)
-                self.spawnedObj = nil
+            if self.spawnedObjects then
+                for _, obj in pairs(self.spawnedObjects) do
+                    if DoesEntityExist(obj) then DeleteEntity(obj) end
+                end
+                self.spawnedObjects = nil
             end
-            lib.hideTextUI()
-            self.isPromptShowing = false
         end,
         inside = function(self)
-            local playerCoords = GetEntityCoords(cache.ped)
-            local dist = #(playerCoords - v.position)
+            local currentTime = GetGameTimer()
+            local spawnCount = data.spawnCount or 1
 
-            if dist <= (v.interactDist or 2.0) then
-                if not self.isPromptShowing then
-                    lib.showTextUI(("[E] - Harvest %s"):format(v.label), { icon = v.icon })
-                    self.isPromptShowing = true
-                end
+            for i = 1, spawnCount do
+                if not self.spawnedObjects[i] then
+                    local respawnAt = plantCooldowns[zoneKey][i] or 0
+                    
+                    if currentTime >= respawnAt then
+                        local spawnPos = data.position
 
-                if IsControlJustReleased(0, 38) and not IsPedInAnyVehicle(cache.ped, true) then
-                    local success = lib.progressCircle({
-                        duration = v.time,
-                        label = ("Harvesting %s"):format(v.label),
-                        position = 'bottom',
-                        useWhileDead = false,
-                        canCancel = true,
-                        disable = { move = true, car = true, combat = true },
-                        anim = {
-                            dict = "amb@world_human_gardener_plant@male@idle_a",
-                            clip = "idle_b",
-                        },
-                    })
+                        local obj = CreateObject(data.prop.model, spawnPos.x, spawnPos.y, spawnPos.z, false, true, false)
+                        SetEntityHeading(obj, math.random(0, 360) + 0.0)
+                        FreezeEntityPosition(obj, true)
+                        
+                        local iconStr = data.icon or "leaf"
+                        if not string.find(iconStr, "fa-") then iconStr = "fa-solid fa-" .. iconStr end
 
-                    if success then
-                        local hasSpace = lib.callback.await("fn-drugs:sv:requestPick", false, k)
-                        if not hasSpace then
-                            lib.notify({ title = "Inventory Full", description = "You cannot carry any more.", type = "error" })
-                        end
+                        exports.ox_target:addLocalEntity(obj, {
+                            {
+                                label = "Harvest " .. data.label,
+                                icon = iconStr,
+                                distance = data.interactDist or 2.0,
+                                onSelect = function()
+                                    HarvestPlant(zoneKey, i, obj, data)
+                                    self.spawnedObjects[i] = nil 
+                                end
+                            }
+                        })
+
+                        self.spawnedObjects[i] = obj 
                     end
                 end
-            else
-                if self.isPromptShowing then
-                    lib.hideTextUI()
-                    self.isPromptShowing = false
-                end
             end
+            Wait(1000)
         end,
     })
 end
 
-
-
--- Recipes / Tables
-
--- CREATE TABLES FIRST DUMBASS
-
-local recipeZones = {}
+local tableRecipes = {}
 for recipeId, recipe in pairs(Config.Recipes) do
     if recipe.table then
-        print("oh shit")
-
+        if not tableRecipes[recipe.table] then tableRecipes[recipe.table] = {} end
+        table.insert(tableRecipes[recipe.table], recipeId)
     else
         recipeZones[#recipeZones + 1] = lib.zones.sphere({
             coords = recipe.location,
-            radius = 10,
-            debug = false,
-            onEnter = function (self)
+            radius = 5.0,
+            onEnter = function()
                 exports.ox_target:addSphereZone({
                     name = recipe.id,
                     coords = recipe.location,
                     radius = 1.0,
-                    debug = false,
                     options = {
-                        label = recipe.targetText,
-                        distance = 1.5,
-                        onSelect = function ()
-                            TriggerEvent("fn-drugs:openLabMenu", recipeId)
-                        end
+                        {
+                            label = recipe.targetText,
+                            onSelect = function() TriggerEvent("fn-drugs:openLabMenu", recipeId) end
+                        }
                     }
                 })
             end,
-            onExit = function ()
-                exports.ox_target:removeZone(recipe.id)
-            end
+            onExit = function() exports.ox_target:removeZone(recipe.id) end
         })
     end
 end
 
+for tableName, tableData in pairs(Config.Tables) do
+    tableZones[#tableZones + 1] = lib.zones.sphere({
+        coords = tableData.coords.xyz,
+        radius = 60.0,
+        onEnter = function()
+            local hash = GetHashKey(tableData.prop)
+            if lib.requestModel(hash, 5000) then
+                local obj = CreateObject(hash, tableData.coords.x, tableData.coords.y, tableData.coords.z, false, false, false)
+                if not tableData.letFloat then PlaceObjectOnGroundProperly(obj) end
+                FreezeEntityPosition(obj, true)
+                spawnedTableObjects[tableName] = obj
 
-
+                local options = {}
+                for _, recipeId in ipairs(tableRecipes[tableName] or {}) do
+                    local recipe = Config.Recipes[recipeId]
+                    table.insert(options, {
+                        name = recipe.id,
+                        label = recipe.targetText,
+                        icon = "fa-solid fa-flask",
+                        onSelect = function() TriggerEvent("fn-drugs:openLabMenu", recipeId) end
+                    })
+                end
+                exports.ox_target:addLocalEntity(obj, options)
+            end
+        end,
+        onExit = function()
+            if spawnedTableObjects[tableName] then
+                DeleteObject(spawnedTableObjects[tableName])
+                spawnedTableObjects[tableName] = nil
+            end
+        end
+    })
+end
 
 lib.callback.register("fn-drugs:cl:startbar", function(time, label, skillCheck, anim)
-    if skillCheck then
-        local success = lib.skillCheck(skillCheck, {'1','2','3','4'})
-        if success then
-            if lib.progressBar({duration = time, label = label, anim = anim, canCancel = true}) then
-                return true
-            else
-                return false
-            end
-        else
-            return false
-        end
-    else
-        if lib.progressBar({duration = time, label = label, anim = anim}) then
-            return true
-        else
-            return false
-        end
-    end
+    if skillCheck and not lib.skillCheck(skillCheck, {'1','2','3','4'}) then return false end
+    return lib.progressBar({duration = time, label = label, anim = anim, canCancel = true})
 end)
-
