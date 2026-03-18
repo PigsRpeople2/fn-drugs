@@ -1,8 +1,22 @@
 if not lib then return end
 
+
+local spawnPositions = {}
+
+for zoneKey, data in pairs(Config.HarvestingSpots) do
+    spawnPositions[zoneKey] = {}
+    for i = 1, data.spawnCount or 1 do
+        spawnPositions[zoneKey][i] = nil
+    end
+end
+
+
+
+
+
 -- harvesting
 
-lib.callback.register('fn-drugs:sv:requestPick', function(source, spotKey)
+lib.callback.register('fn-drugs:sv:requestPick', function(source, spotKey, plantIndex)
     local player = exports.qbx_core:GetPlayer(source)
     if not player then return false end
 
@@ -20,14 +34,56 @@ lib.callback.register('fn-drugs:sv:requestPick', function(source, spotKey)
         itemCount = spot.count or 1
     end
 
+
     if exports.ox_inventory:CanCarryItem(source, itemName, itemCount) then
         exports.ox_inventory:AddItem(source, itemName, itemCount)
+        spawnPositions[spotKey][plantIndex] = nil
+        TriggerClientEvent('fn-drugs:cl:harvested', -1, spotKey, plantIndex)
         return true
     else
         return false
     end
 end)
 
+
+
+
+-- Position Plants
+
+lib.callback.register('fn-drugs:sv:requestSpawnPos', function (source, data, plantIndex, zoneKey)
+    if spawnPositions[zoneKey][plantIndex] then
+        return spawnPositions[zoneKey][plantIndex]
+    end
+
+    local spawnPos = data.position
+
+    if data.spawnRadius then
+        spawnPos = spawnPos + vec3(math.random(-data.spawnRadius or 0, data.spawnRadius or 0), math.random(-data.spawnRadius or 0, data.spawnRadius or 0), 0.0)
+    end
+
+    if data.minGap then
+        while lib.callback.await("fn-drugs:cl:getClosest", lib.getClosestPlayer(spawnPos, data.renderDist), { x = spawnPos.x, y = spawnPos.y, z = spawnPos.z, radius = data.minGap, modelHash = data.prop.model }) ~= 0 do
+            spawnPos = spawnPos + vec3(math.random(-data.spawnRadius or 0, data.spawnRadius or 0), math.random(-data.spawnRadius or 0, data.spawnRadius or 0), 0.0)
+        end
+    end
+
+    spawnPositions[zoneKey][plantIndex] = spawnPos
+    return spawnPos
+end)
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- processing
 RegisterNetEvent("fn-drugs:server:startProcess", function(recipeId, amount)
     local source = source
     local recipe = Config.Recipes[recipeId]

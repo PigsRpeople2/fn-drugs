@@ -2,10 +2,10 @@ local harvestingZones = {}
 local recipeZones = {}
 local tableZones = {}
 local spawnedTableObjects = {}
-local plantCooldowns = {} 
+local plantCooldowns = {}
 
 local function CleanupDrugSystem()
-    for _, zone in ipairs(harvestingZones) do
+    for _, zone in pairs(harvestingZones) do
         if zone.spawnedObjects then
             for _, obj in pairs(zone.spawnedObjects) do
                 if DoesEntityExist(obj) then DeleteEntity(obj) end
@@ -42,25 +42,52 @@ function HarvestPlant(zoneKey, index, entity, data)
     })
 
     if success then
-        local hasSpace = lib.callback.await("fn-drugs:sv:requestPick", false, zoneKey)
+        local hasSpace = lib.callback.await("fn-drugs:sv:requestPick", false, zoneKey, index)
         if hasSpace then
-            plantCooldowns[zoneKey][index] = GetGameTimer() + ((data.respawnTime or 300) * 1000)
-            
-            if DoesEntityExist(entity) then
-                exports.ox_target:removeLocalEntity(entity)
-                DeleteEntity(entity)
-            end
         else
             lib.notify({ title = "Inventory Full", type = "error" })
         end
     end
 end
 
+RegisterNetEvent('fn-drugs:cl:harvested', function (spotKey, plantIndex)
+    local playerPed = PlayerPedId()
+    local coords = GetEntityCoords(playerPed)
+    local data = Config.HarvestingSpots[spotKey]
+
+    local zone = harvestingZones[spotKey]
+
+    if zone and zone:contains(coords) then
+        plantCooldowns[spotKey][plantIndex] = GetGameTimer() + ((data.respawnTime or 300) * 1000)
+        local entity = zone.spawnedObjects[plantIndex]
+        
+        if DoesEntityExist(entity) then
+            zone.spawnedObjects[plantIndex] = nil
+            exports.ox_target:removeLocalEntity(entity)
+            DeleteEntity(entity)
+        end
+    end
+end)
+
 -- Spawn Plants
+
+lib.callback.register('fn-drugs:cl:getClosest', function (args)
+    return GetClosestObjectOfType(
+		args.x --[[ number ]], 
+		args.y --[[ number ]], 
+		args.z --[[ number ]], 
+		args.radius --[[ number ]], 
+		args.modelHash --[[ Hash ]], 
+		false --[[ boolean ]], 
+		false --[[ boolean ]], 
+		false --[[ boolean ]]
+	)
+end)
+
 for zoneKey, data in pairs(Config.HarvestingSpots) do
     plantCooldowns[zoneKey] = {}
 
-    harvestingZones[#harvestingZones + 1] = lib.zones.sphere({
+    harvestingZones[zoneKey] = lib.zones.sphere({
         coords = data.position,
         debug = false,
         radius = data.renderDist or 15.0,
@@ -85,17 +112,8 @@ for zoneKey, data in pairs(Config.HarvestingSpots) do
                     local respawnAt = plantCooldowns[zoneKey][i] or 0
                     
                     if currentTime >= respawnAt then
-                        local spawnPos = data.position
 
-                        if data.spawnRadius then
-                            spawnPos = spawnPos + vec3(math.random(-data.spawnRadius or 0, data.spawnRadius or 0), math.random(-data.spawnRadius or 0, data.spawnRadius or 0), 0.0)
-                        end
-
-                        if data.minGap then
-                            while GetClosestObjectOfType(spawnPos.x, spawnPos.y, spawnPos.z, data.minGap, data.prop.model, false, false, false) ~= 0 do
-                                spawnPos = spawnPos + vec3(math.random(-data.spawnRadius or 0, data.spawnRadius or 0), math.random(-data.spawnRadius or 0, data.spawnRadius or 0), 0.0)
-                            end
-                        end
+                        local spawnPos = lib.callback.await('fn-drugs:sv:requestSpawnPos', false, data, i, zoneKey)
 
                         local obj = CreateObject(data.prop.model, spawnPos.x, spawnPos.y, spawnPos.z, false, true, false)
                         SetEntityHeading(obj, math.random(0, 360) + 0.0)
@@ -110,8 +128,7 @@ for zoneKey, data in pairs(Config.HarvestingSpots) do
                                 icon = iconStr,
                                 distance = data.interactDist or 2.0,
                                 onSelect = function()
-                                    HarvestPlant(zoneKey, i, obj, data)
-                                    self.spawnedObjects[i] = nil 
+                                    HarvestPlant(zoneKey, i, obj, data, zoneKey)
                                 end
                             }
                         })

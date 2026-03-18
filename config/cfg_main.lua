@@ -24,7 +24,7 @@ Config.HarvestingSpots = {
         spawnCount = 5, -- How many props spawn at a time
         minGap = 0.5, -- Minimum distance between spawned props
 
-        respawnTime = 10, -- How long props take to respawn (ms)
+        respawnTime = 10, -- How long props take to respawn (ms) YOU LITERALLY HAVE LOGIC MAKING THIS SECONDS, HONEY WTF
         renderDist = 40.0, 
         interactDist = 1.5,  
 
