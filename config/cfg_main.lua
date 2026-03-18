@@ -25,13 +25,17 @@ Config.HarvestingSpots = {
         minGap = 0.5, -- Minimum distance between spawned props
 
         respawnTime = 10, -- How long props take to respawn (ms) YOU LITERALLY HAVE LOGIC MAKING THIS SECONDS, HONEY WTF
-        renderDist = 40.0, 
-        interactDist = 1.5,  
+        renderDist = 40.0,
+        interactDist = 1.5,
 
         label = "Wild Plants",
 
-        itemName = "money",
-        count = 1,
+        reward = {
+            {itemName = "money", count = 1, chance = 100},
+            {itemName = "ammo-9", count = 2, chance = 50},
+            {itemName = "ammo-rifle", count = {min = 1, max = 100}, chance = 100}
+        },
+
         time = 3000,
         icon = "cannabis",
 

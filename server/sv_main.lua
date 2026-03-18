@@ -34,9 +34,27 @@ lib.callback.register('fn-drugs:sv:requestPick', function(source, spotKey, plant
         itemCount = spot.count or 1
     end
 
+    local rewards = {}
+    for _, reward in ipairs(Config.HarvestingSpots[spotKey].reward or {}) do
+        if math.random(1, 100) <= reward.chance then
+            table.insert(rewards, {
+                itemName = reward.itemName,
+                count = type(reward.count) == "table" and math.random(reward.count.min, reward.count.max) or reward.count
+            })
+        end
+    end
 
-    if exports.ox_inventory:CanCarryItem(source, itemName, itemCount) then
-        exports.ox_inventory:AddItem(source, itemName, itemCount)
+    local totalWeight = 0
+    for _, reward in ipairs(rewards) do
+        local itemData = exports.ox_inventory:Items(reward.itemName)
+        totalWeight = totalWeight + (itemData.weight * reward.count)
+    end
+
+    print(totalWeight)
+    if exports.ox_inventory:CanCarryWeight(source, totalWeight) then
+        for _, reward in ipairs(rewards) do
+            exports.ox_inventory:AddItem(source, reward.itemName, reward.count)
+        end
         spawnPositions[spotKey][plantIndex] = nil
         TriggerClientEvent('fn-drugs:cl:harvested', -1, spotKey, plantIndex)
         return true

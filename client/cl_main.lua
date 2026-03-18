@@ -43,9 +43,8 @@ function HarvestPlant(zoneKey, index, entity, data)
 
     if success then
         local hasSpace = lib.callback.await("fn-drugs:sv:requestPick", false, zoneKey, index)
-        if hasSpace then
-        else
-            lib.notify({ title = "Inventory Full", type = "error" })
+        if not hasSpace then
+            lib.notify({ title = "Inventory Full", description = "You cannot carry the harvested items",  type = "error" })
         end
     end
 end
