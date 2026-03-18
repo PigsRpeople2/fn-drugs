@@ -26,6 +26,8 @@ AddEventHandler('onResourceStop', function(resource)
     CleanupDrugSystem()
 end)
 
+
+
 function HarvestPlant(zoneKey, index, entity, data)
     if IsPedInAnyVehicle(cache.ped, true) then return end
 
@@ -54,12 +56,14 @@ function HarvestPlant(zoneKey, index, entity, data)
     end
 end
 
+-- Spawn Plants
 for zoneKey, data in pairs(Config.HarvestingSpots) do
     plantCooldowns[zoneKey] = {}
 
     harvestingZones[#harvestingZones + 1] = lib.zones.sphere({
         coords = data.position,
         debug = false,
+        radius = data.renderDist or 15.0,
         onEnter = function(self)
             self.spawnedObjects = {}
             if data.prop then lib.requestModel(data.prop.model, 5000) end
@@ -82,6 +86,16 @@ for zoneKey, data in pairs(Config.HarvestingSpots) do
                     
                     if currentTime >= respawnAt then
                         local spawnPos = data.position
+
+                        if data.spawnRadius then
+                            spawnPos = spawnPos + vec3(math.random(-data.spawnRadius or 0, data.spawnRadius or 0), math.random(-data.spawnRadius or 0, data.spawnRadius or 0), 0.0)
+                        end
+
+                        if data.minGap then
+                            while GetClosestObjectOfType(spawnPos.x, spawnPos.y, spawnPos.z, data.minGap, data.prop.model, false, false, false) ~= 0 do
+                                spawnPos = spawnPos + vec3(math.random(-data.spawnRadius or 0, data.spawnRadius or 0), math.random(-data.spawnRadius or 0, data.spawnRadius or 0), 0.0)
+                            end
+                        end
 
                         local obj = CreateObject(data.prop.model, spawnPos.x, spawnPos.y, spawnPos.z, false, true, false)
                         SetEntityHeading(obj, math.random(0, 360) + 0.0)
@@ -111,6 +125,10 @@ for zoneKey, data in pairs(Config.HarvestingSpots) do
     })
 end
 
+
+
+
+-- Recipes
 local tableRecipes = {}
 for recipeId, recipe in pairs(Config.Recipes) do
     if recipe.table then
@@ -138,6 +156,8 @@ for recipeId, recipe in pairs(Config.Recipes) do
     end
 end
 
+
+-- Tables
 for tableName, tableData in pairs(Config.Tables) do
     tableZones[#tableZones + 1] = lib.zones.sphere({
         coords = tableData.coords.xyz,

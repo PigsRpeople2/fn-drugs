@@ -3,6 +3,7 @@ Config = {}
 Config.HarvestingSpots = {
     ["weed_farm"] = { -- Singular Prop
         position = vec3(449.0, 5575.3, 780.15), -- WHERE THE THING IS
+        respawnTime = 10, -- How long props take to respawn (ms)
         renderDist = 5.0, -- How far can see
         interactDist = 2.0,  -- How far can interact
         label = "Weed", -- Fancy label uwu
@@ -18,16 +19,22 @@ Config.HarvestingSpots = {
     },
     ["wild_plants"] = { -- Area
         position = vec3(2418.66, 4783.27, 33.62),
-        spawnRadius = 15.0, -- The radius of spawn
+
+        spawnRadius = 5.0, -- The radius of spawn
         spawnCount = 5, -- How many props spawn at a time
+        minGap = 0.5, -- Minimum distance between spawned props
+
         respawnTime = 10, -- How long props take to respawn (ms)
         renderDist = 40.0, 
         interactDist = 1.5,  
+
         label = "Wild Plants",
+
         itemName = "money",
         count = 1,
         time = 3000,
         icon = "cannabis",
+
         prop = { model = `prop_weed_01`, heading = 0.0 } 
     }
 }
