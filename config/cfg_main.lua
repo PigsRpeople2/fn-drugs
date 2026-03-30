@@ -2,8 +2,8 @@ Config = {}
 
 Config.HarvestingSpots = {
     ["weed_farm"] = { -- Singular Prop
-        position = vec3(449.0, 5575.3, 780.15), -- WHERE THE THING IS
-        respawnTime = 10, -- How long props take to respawn (ms)
+        position = vec3(0.0, 0.0, 0.0), -- WHERE THE THING IS
+        respawnTime = 10, -- How long props take to respawn (s)
         renderDist = 5.0, -- How far can see
         interactDist = 2.0,  -- How far can interact
         label = "Weed", -- Fancy label uwu
@@ -13,27 +13,26 @@ Config.HarvestingSpots = {
         icon = "cannabis", -- Icon
         prop = {
             model = `prop_weed_01`,
-            pos = vec3(449.0, 5575.3, 780.15),
+            pos = vec3(0.0, 0.0, 0.0),
             heading = 0.0
         }
     },
     ["wild_plants"] = { -- Area
-        position = vec3(2418.66, 4783.27, 33.62),
+        position = vec3(0.0, 0.0, 0.0),
 
         spawnRadius = 5.0, -- The radius of spawn
         spawnCount = 5, -- How many props spawn at a time
         minGap = 0.5, -- Minimum distance between spawned props
 
-        respawnTime = 10, -- How long props take to respawn (ms) YOU LITERALLY HAVE LOGIC MAKING THIS SECONDS, HONEY WTF
-        renderDist = 40.0,
-        interactDist = 1.5,
+        respawnTime = 10, -- How long props take to respawn (s)
+        renderDist = 40.0, 
+        interactDist = 1.5,  
 
         label = "Wild Plants",
 
         reward = {
-            {itemName = "money", count = 1, chance = 100},
+            {itemName = "money", count = {min = 1, max = 5}, chance = 100},
             {itemName = "ammo-9", count = 2, chance = 50},
-            {itemName = "ammo-rifle", count = {min = 1, max = 100}, chance = 100}
         },
 
         time = 3000,
@@ -66,7 +65,7 @@ Config.Recipes = {
 Config.Tables = {
     ["meth_table"] = {
         name = "meth_table",
-        coords = vec4(113.3866, -1079.2788, 28.1924, 350.1730),
+        coords = vec4(0.0, 0.0, 0.0, 0.0),
         prop = "tr_prop_meth_table01a",
         --letFloat = true
     }
